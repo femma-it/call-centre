@@ -12,6 +12,7 @@ using System.Windows.Forms;
 using AutoUpdaterDotNET;
 using CallCentre.Models;
 using IdentityModel.OidcClient;
+using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Win32;
 using NAudio.Wave;
 using Newtonsoft.Json;
@@ -25,6 +26,7 @@ namespace CallCentre
         private SipAccount _account;
         private OidcClient _oidcClient;
         private Timer _timer;
+        private HubConnection _connection;
         private string _accessToken;
         private string _refreshToken;
 
@@ -66,6 +68,32 @@ namespace CallCentre
             LoginUser();
         }
 
+        private async Task StartSignalR()
+        {
+            var version = Assembly.GetEntryAssembly()?.GetName().Version;
+
+            _connection = new HubConnectionBuilder()
+                .WithUrl(Constants.HubUrl, options =>
+                {
+                    options.Headers.Add("Version", version?.ToString());
+                    options.Headers.Add("MAC", Helpers.GetMacAddress());
+                    options.Headers.Add("Os", Helpers.GetWindowsVersion());
+                    options.AccessTokenProvider = () => Task.FromResult(_accessToken);
+                })
+                .WithAutomaticReconnect(new RetryPolicy())
+                .Build();
+            await _connection.StartAsync();
+
+            _connection.On("ClosePhone", ClosePhone);
+            _connection.On("OpenPhone", () => OpenPhone(_account));
+
+            _connection.Closed += async error =>
+            {
+                await Task.Delay(1000);
+                await _connection.StartAsync();
+            };
+        }
+
         private void Main_Load(object sender, EventArgs e)
         {
             RegisterForSystemEvents();
@@ -83,9 +111,6 @@ namespace CallCentre
             try
             {
                 ClosePhone();
-
-                var http = new HttpWrapper(_accessToken);
-                http.Invoke<object>("POST", Constants.LogoutUrl, string.Empty);
             }
             catch
             {
@@ -142,20 +167,10 @@ namespace CallCentre
 
 
                 var result = _process.Start();
-                if (result)
+                if (!result)
                 {
-                    phoneLabel.Text = "Запущено";
-                    phoneLabel.ForeColor = Color.ForestGreen;
-                    OpenPhoneButton.Enabled = false;
-                }
-                else
-                {
-                    phoneLabel.Text = "Не запущено";
-                    phoneLabel.ForeColor = Color.Red;
                     MessageBox.Show("Помилка запуску телефону", "Помилка", MessageBoxButtons.RetryCancel, MessageBoxIcon.Error);
-                    OpenPhoneButton.Enabled = true;
                 }
-
 
                 _process.EnableRaisingEvents = true;
                 _process.Exited += Process_Exited;
@@ -168,13 +183,6 @@ namespace CallCentre
 
         private void ClosePhone()
         {
-            Invoke(new MethodInvoker(delegate
-            {
-                phoneLabel.Text = "Не запущено";
-                phoneLabel.ForeColor = Color.Red;
-                OpenPhoneButton.Enabled = true;
-            }));
-
             try
             {
                 _process = new Process
@@ -220,11 +228,6 @@ namespace CallCentre
 
         #region Buttons
 
-        private void OpenPhoneButton_Click(object sender, EventArgs e)
-        {
-            OpenPhone(_account);
-        }
-
         private void CloseApplicationButton_Click(object sender, EventArgs e)
         {
             Close();
@@ -233,11 +236,6 @@ namespace CallCentre
         private void OpenSoundSettings_Click(object sender, EventArgs e)
         {
             Process.Start("mmsys.cpl");
-        }
-
-        private void toolStripButton1_Click(object sender, EventArgs e)
-        {
-            ClosePhone();
         }
 
         #endregion
@@ -311,9 +309,18 @@ namespace CallCentre
             const string redirectUri = "http://127.0.0.1:7890/";
 
             var httpListener = new HttpListener();
-            httpListener.Prefixes.Add(redirectUri);
-            httpListener.Start();
 
+            try
+            {
+                httpListener.Prefixes.Add(redirectUri);
+                httpListener.Start();
+            }
+            catch
+            {
+                httpListener.Stop();
+                httpListener.Close();
+                throw;
+            }
 
             try
             {
@@ -339,6 +346,8 @@ namespace CallCentre
                 _refreshToken = loginResult.RefreshToken;
 
                 _timer.Start();
+
+                await StartSignalR();
             }
             catch (Exception exception)
             {
@@ -381,12 +390,9 @@ namespace CallCentre
                     lineLabel.Text = _account?.InternalNumber;
 
                     CheckDevices();
-                    OpenPhone(_account);
                 }
                 catch
                 {
-                    OpenPhoneButton.Enabled = true;
-
                     using (var reserve = new Reserve())
                     {
                         if (reserve.ShowDialog() == DialogResult.OK)
@@ -428,7 +434,9 @@ namespace CallCentre
         private static async Task SendResponseAsync(HttpListenerContext context)
         {
             var response = context.Response;
-            const string responseString = "<html><head></head><body>Please return to the app.</body></html>";
+            const string responseString = "<html><head></head><body>Please return to the app.</body>" +
+                                          "<script type=\"text/javascript\">window.close();</script>" +
+                                          "</html>";
             var buffer = Encoding.UTF8.GetBytes(responseString);
             response.ContentLength64 = buffer.Length;
             var responseOutput = response.OutputStream;
@@ -445,7 +453,7 @@ namespace CallCentre
             catch
             {
                 url = url.Replace("&", "^&");
-                Process.Start(new ProcessStartInfo("cmd", $"/c start {url}") {CreateNoWindow = true});
+                Process.Start(new ProcessStartInfo("cmd", $"/c start {url}") { CreateNoWindow = true });
             }
         }
 

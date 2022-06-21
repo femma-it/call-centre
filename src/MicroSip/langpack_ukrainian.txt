@@ -142,7 +142,7 @@ STUN сервер
 Доступно оновлення
 [Force Codec for Incoming]
 Задавати кодек для вхідних
-[Invalid URI]
+[Invalid Number]
 Неправильний номер
 [Offline]
 Не у мережі
@@ -182,8 +182,8 @@ STUN сервер
 Пристрій для виклику
 [Service Unavailable]
 Сервіс недоступний
-[Invalid Request URI]
-Невірний номер
+[Unable to connect to remote server.]
+Не вдається підключитися до віддаленого сервера.
 [Busy Here]
 Зайнято
 [Trying]
@@ -406,7 +406,7 @@ RTP Порти
 Ви впевнені, що хочете видалити?
 [Delete contact]
 Видалити контакт
-[Account or credential not found]
+[Account or credentials not found.]
 Обліковий запис або облікові дані не знайдено
 [Please fill out all required fields.]
 Будь ласка, заповніть усі обов’язкові поля.
@@ -420,4 +420,42 @@ RTP Порти
 Зареєструйтесь
 [Unregister]
 Скасувати реєстрацію
+[Options]
+Варіанти
+[Delay]
+Затримка
+[Caller Number]
+Номер абонента
+[Unable to find default audio device]
+Звуковий пристрій не знайдено
+[Network is unreachable]
+Мережа недосяжна
+[Allow access to the microphone in your antivirus settings.]
+Дозвольте доступ до мікрофона в налаштуваннях антивірусу.
+[Fix microphone permission in the Windows settings (Windows Settings => Privacy => Microphone).]
+Виправте дозвіл на мікрофон у налаштуваннях Windows (Налаштування Windows =&gt; Конфіденційність =&gt; Мікрофон).
+[Speakers and microphone both are required. To make calls you must have input and output sound device in your system.]
+Динаміки та мікрофон потрібні. Для здійснення дзвінків у вашій системі повинен бути вхідний та вихідний звуковий пристрій.
+[Canceled]
+Скасовано
+[Unknown format]
+Невідомий формат
+[Softphone is not initialized. Check your settings.]
+Софтфон не ініціалізований. Перевірте свої налаштування.
+[Unable to initialize network sockets.]
+Не вдається ініціалізувати мережеві сокети.
+[Starred]
+Позначено зірочкою
+[Run at System Startup]
+Запустіть при запуску системи
+[Run Batch]
+Запустити пакет
+[Call URL]
+URL-адреса виклику
+[Call All]
+Телефонуйте всім
+[Custom]
+На замовлення
+[Add Contact]
+Додати контакт
 []
