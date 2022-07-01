@@ -86,12 +86,37 @@ namespace CallCentre
 
             _connection.On("ClosePhone", ClosePhone);
             _connection.On("OpenPhone", () => OpenPhone(_account));
+            _connection.On("HangUpCall", HangUpCall);
 
             _connection.Closed += async error =>
             {
                 await Task.Delay(1000);
                 await _connection.StartAsync();
             };
+        }
+
+        private void HangUpCall()
+        {
+            try
+            {
+                _process = new Process
+                {
+                    StartInfo =
+                    {
+                        WorkingDirectory = _microSipPath,
+                        FileName = "microsip.exe",
+                        Arguments = "/hangupall"
+                    }
+                };
+                
+                _process.Start();
+
+                // _process.Kill();
+            }
+            catch
+            {
+                MessageBox.Show("Не вдалося закрити модуль 'MicroSip'", "Помилка", MessageBoxButtons.RetryCancel, MessageBoxIcon.Error);
+            }
         }
 
         private void Main_Load(object sender, EventArgs e)
@@ -161,7 +186,8 @@ namespace CallCentre
                     StartInfo =
                     {
                         WorkingDirectory = _microSipPath,
-                        FileName = "microsip.exe"
+                        FileName = "microsip.exe",
+                        // Arguments = "/hidden"
                     }
                 };
 
@@ -180,7 +206,7 @@ namespace CallCentre
                 MessageBox.Show(ex.Message, "Помилка запуску телефону", MessageBoxButtons.RetryCancel, MessageBoxIcon.Error);
             }
         }
-
+        
         private void ClosePhone()
         {
             try
@@ -191,7 +217,7 @@ namespace CallCentre
                     {
                         WorkingDirectory = _microSipPath,
                         FileName = "microsip.exe",
-                        Arguments = "/exit"
+                        Arguments = "/exit" 
                     }
                 };
                 _process.Start();
